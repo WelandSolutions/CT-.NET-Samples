@@ -1,7 +1,4 @@
 # Compact Talk .NET Samples
-Compact Talk .NET Samples
-
-# Compact Store API Samples
 
 ## Overview
 
