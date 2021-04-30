@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MiniWMS", "MiniWMS.csproj", "{10DDAB4B-A3FB-443F-9340-7E6906932CF0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10DDAB4B-A3FB-443F-9340-7E6906932CF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10DDAB4B-A3FB-443F-9340-7E6906932CF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10DDAB4B-A3FB-443F-9340-7E6906932CF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10DDAB4B-A3FB-443F-9340-7E6906932CF0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {374E3C2F-5B92-4D1B-98B8-5892915A3159}
+	EndGlobalSection
+EndGlobal
