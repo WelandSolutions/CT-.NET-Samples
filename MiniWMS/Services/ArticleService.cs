@@ -71,7 +71,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
                 {
                     ArticleNo = i.ToString(),
                     ArticleDesc = "Article " + i.ToString(),
-                    Elevator = "11",
+                    Elevator = "Sim_1",
                     Id = i,
                     Quantity = 100,
                     TrayNo = 1

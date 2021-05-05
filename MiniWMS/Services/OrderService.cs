@@ -22,16 +22,16 @@
 * SOFTWARE.
 *
 * ======================================================================*/
-using Weland.Ct.Api.Sample.MiniWMS.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
 using Weland.CompactTalk;
 using Weland.CompactTalk.Client;
 using Weland.CompactTalk.Framework.OrderManagement;
+using Weland.Ct.Api.Sample.MiniWMS.Models;
 
 namespace Weland.Ct.Api.Sample.MiniWMS.Services
 {
@@ -137,11 +137,9 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
             //Deserialize order list from file storage
             using (Stream file = File.Open("MyOrders.dat", FileMode.OpenOrCreate))
             {
-                BinaryFormatter bformatter = new BinaryFormatter();
-
                 if (file.Length > 0)
                 {
-                    var orders = (List<OrderRecord>)bformatter.Deserialize(file);
+                    var orders = JsonSerializer.DeserializeAsync<List<OrderRecord>>(file).Result;
                     orders.ForEach(order => _ordersByCTId.Add(order.CTOrderId, order));
                     return orders;
                 }
@@ -153,9 +151,8 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
         private void SaveOrders()
         {
             //Serialize order list to file storage
-            using Stream orderFile = File.Open("MyOrders.dat", FileMode.OpenOrCreate);
-            BinaryFormatter bformatter = new BinaryFormatter();
-            bformatter.Serialize(orderFile, GetOrders());
+            using Stream orderFile = File.Open("MyOrders.dat", FileMode.Create);
+            JsonSerializer.SerializeAsync(orderFile, GetOrders()).Wait();
         }
 
         private void SynchronizeOrders()
