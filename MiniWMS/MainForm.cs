@@ -62,8 +62,8 @@ namespace Weland.Ct.Api.Sample.MiniWMS
             }
             catch (Exception e)
             {
-                MessageBox.Show("Failed to initialize order service");
-                throw e;
+                MessageBox.Show($"Failed to initialize order service. Message: {e.Message}");
+                throw;
             }
 
             _orderService.OnOrderStatusChanged += new OrderStatusChanged(OnOrderStatusChangedEvent);
