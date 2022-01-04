@@ -50,7 +50,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
         // The Compact Talk WCF connection
         private CTConnection _compactTalkConnection;
         //Index of orders sent to Compact Talk
-        private readonly Dictionary<int, OrderRecord> _ordersByCTId = new Dictionary<int, OrderRecord>();
+        private readonly Dictionary<int, OrderRecord> _ordersByCTId = new();
 
         private readonly ArticleService _articleService;
 
@@ -111,7 +111,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
 
         public void AcknowledgeOrder(int orderId, float quantity)
         {
-            OrderRecord selectedOrder = _ordersByCTId[orderId];
+            var selectedOrder = _ordersByCTId[orderId];
 
             // Acknowledge order in Compact Talk
             _compactTalkConnection.Command.ExtAckOrder(
@@ -132,20 +132,15 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
             return _ordersByCTId.TryGetValue(orderId, out record);
         }
 
-        private List<OrderRecord> GetStoredOrders()
+        private void GetStoredOrders()
         {
             //Deserialize order list from file storage
-            using (Stream file = File.Open("MyOrders.dat", FileMode.OpenOrCreate))
+            using Stream file = File.Open("MyOrders.dat", FileMode.OpenOrCreate);
+            if (file.Length > 0)
             {
-                if (file.Length > 0)
-                {
-                    var orders = JsonSerializer.DeserializeAsync<List<OrderRecord>>(file).Result;
-                    orders.ForEach(order => _ordersByCTId.Add(order.CTOrderId, order));
-                    return orders;
-                }
+                var orders = JsonSerializer.Deserialize<List<OrderRecord>>(file);
+                orders?.ForEach(order => _ordersByCTId.Add(order.CTOrderId, order));
             }
-
-            return new List<OrderRecord>();
         }
 
         private void SaveOrders()
@@ -157,24 +152,25 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
 
         private void SynchronizeOrders()
         {
-            var inaktiveOrders = new List<OrderRecord>();
+            var inactiveOrders = new List<OrderRecord>();
 
             //For each order in our order list, check to se if it matches Compact Talks order
             foreach (var order in GetOrders())
             {
-                PickOrder ctOrder = _compactTalkConnection.Command.GetOrder(order.CTOrderId);
+                var ctOrder = _compactTalkConnection.Command.GetOrder(order.CTOrderId);
                 if (ctOrder == null)
                 {
-                    //Compakt Talk has never seen an order with this id. This should never happen.
-                    inaktiveOrders.Add(order);
+                    //Compact Talk has never seen an order with this id. This should never happen.
+                    inactiveOrders.Add(order);
                     continue;
                 }
+
                 //The order has been acknowledged while we where shut down and now only exist in historical storage
-                else if (ctOrder.Status == OrderStatus.Historical)
+                if (ctOrder.Status == OrderStatus.Historical)
                 {
                     _articleService.UpdateArticle(order.ArticleId, ctOrder);
 
-                    inaktiveOrders.Add(order);
+                    inactiveOrders.Add(order);
                 }
                 else
                 {
@@ -182,7 +178,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
                 }
             }
 
-            inaktiveOrders.ForEach(order => _ordersByCTId.Remove(order.CTOrderId));
+            inactiveOrders.ForEach(order => _ordersByCTId.Remove(order.CTOrderId));
 
             //Save changes to the order list in the storage file
             SaveOrders();
@@ -194,7 +190,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
             if (!_ordersByCTId.ContainsKey(evt.Order.Id))
                 return;
 
-            OrderRecord order = _ordersByCTId[evt.Order.Id];
+            var order = _ordersByCTId[evt.Order.Id];
 
             //Search for the order in the order view
             order.CTStatus = evt.Order.Status.ToString();
@@ -217,9 +213,9 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
             if (!_ordersByCTId.ContainsKey(evt.Order.Id))
                 return;
 
-            OrderRecord order = _ordersByCTId[evt.Order.Id];
+            var order = _ordersByCTId[evt.Order.Id];
 
-            //If the queue chane type is OrderDeleted
+            //If the queue change type is OrderDeleted
             if (evt.ChangeType == OrderQueueChangeType.OrderDeleted)
             {
                 _ordersByCTId.Remove(order.CTOrderId);
@@ -234,8 +230,8 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
         {
             //Connect to Compact Talk
             _compactTalkConnection = new CTConnection(synchronizeInvoke);
-            _compactTalkConnection.OnOrderStatusChanged += new ClientOrderStatusChanged(OnOrderStatusChangedEvent);
-            _compactTalkConnection.OnQueueChanged += new ClientQueueChanged(OnQueueChangedEvent);
+            _compactTalkConnection.OnOrderStatusChanged += OnOrderStatusChangedEvent;
+            _compactTalkConnection.OnQueueChanged += OnQueueChangedEvent;
 
             _compactTalkConnection.Connect("127.0.0.1");
         }
