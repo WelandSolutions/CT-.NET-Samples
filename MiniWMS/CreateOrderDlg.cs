@@ -47,22 +47,22 @@ namespace Weland.Ct.Api.Sample.MiniWMS
             comboBoxOpening.SelectedIndex = 0;
         }
 
-        public string Operation { get { return comboBoxOperation.Text; } }
+        public string Operation => comboBoxOperation.Text;
 
-        public int ServiceOpening { get { return (int)comboBoxOpening.SelectedItem; } }
+        public int ServiceOpening => (int)comboBoxOpening.SelectedItem;
 
-        public float Quantity { get { return float.Parse(textBoxQuantity.Text); } }
+        public float Quantity => float.Parse(textBoxQuantity.Text);
 
         private void button1_Click(object sender, EventArgs e)
         {
 
-            DialogResult = System.Windows.Forms.DialogResult.OK;
+            DialogResult = DialogResult.OK;
             Close();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            DialogResult = DialogResult.Cancel;
             Close();
         }
 

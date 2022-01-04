@@ -35,7 +35,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
     public class ArticleService
     {
         //Index of articles
-        private readonly Dictionary<int, ArticleRecord> _articleRecordsById = new Dictionary<int, ArticleRecord>();
+        private readonly Dictionary<int, ArticleRecord> _articleRecordsById = new();
 
         public ArticleService()
         {
@@ -54,20 +54,26 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
 
         public void UpdateArticle(int articleId, PickOrder order)
         {
-            if (order.Mode == OrderMode.OUT)
-                _articleRecordsById[articleId].Quantity -= order.AckQuantity;
-            else if (order.Mode == OrderMode.IN)
-                _articleRecordsById[articleId].Quantity += order.AckQuantity;
-            else if (order.Mode == OrderMode.INV)
-                _articleRecordsById[articleId].Quantity = order.AckQuantity;
+            switch (order.Mode)
+            {
+                case OrderMode.OUT:
+                    _articleRecordsById[articleId].Quantity -= order.AckQuantity;
+                    break;
+                case OrderMode.IN:
+                    _articleRecordsById[articleId].Quantity += order.AckQuantity;
+                    break;
+                case OrderMode.INV:
+                    _articleRecordsById[articleId].Quantity = order.AckQuantity;
+                    break;
+            }
         }
 
         private void GenerateArticles()
         {
             //Generate 10 articles and add them to the index
-            for (int i = 1; i <= 10; i++)
+            for (var i = 1; i <= 10; i++)
             {
-                ArticleRecord ar = new ArticleRecord
+                var articleRecord = new ArticleRecord
                 {
                     ArticleNo = i.ToString(),
                     ArticleDesc = "Article " + i.ToString(),
@@ -77,7 +83,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS.Services
                     TrayNo = 1
                 };
 
-                _articleRecordsById.Add(ar.Id, ar);
+                _articleRecordsById.Add(articleRecord.Id, articleRecord);
             }
 
         }

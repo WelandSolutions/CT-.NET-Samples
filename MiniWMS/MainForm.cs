@@ -22,21 +22,22 @@
 * SOFTWARE.
 *
 * ======================================================================*/
-using Weland.Ct.Api.Sample.MiniWMS.Models;
-using Weland.Ct.Api.Sample.MiniWMS.Services;
 using System;
 using System.Data;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using Weland.CompactTalk;
 using Weland.CompactTalk.Framework.OrderManagement;
+using Weland.Ct.Api.Sample.MiniWMS.Models;
+using Weland.Ct.Api.Sample.MiniWMS.Services;
 
 namespace Weland.Ct.Api.Sample.MiniWMS
 {
     public partial class MainForm : Form
     {
 
-        private readonly ArticleService _articleService = new ArticleService();
+        private readonly ArticleService _articleService = new();
         private readonly OrderService _orderService;
 
         public MainForm()
@@ -66,8 +67,8 @@ namespace Weland.Ct.Api.Sample.MiniWMS
                 throw;
             }
 
-            _orderService.OnOrderStatusChanged += new OrderStatusChanged(OnOrderStatusChangedEvent);
-            _orderService.OnQueueChanged += new QueueChanged(OnQueueChangedEvent);
+            _orderService.OnOrderStatusChanged += OnOrderStatusChangedEvent;
+            _orderService.OnQueueChanged += OnQueueChangedEvent;
         }
 
         private void PopulateArticles()
@@ -77,7 +78,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS
             {
                 ListViewItem lvItem = listViewArticles.Items.Add(article.ArticleNo);
                 lvItem.SubItems.Add(article.ArticleDesc);
-                lvItem.SubItems.Add(article.Quantity.ToString());
+                lvItem.SubItems.Add(article.Quantity.ToString(CultureInfo.InvariantCulture));
                 lvItem.SubItems.Add(article.Elevator);
                 lvItem.SubItems.Add(article.TrayNo.ToString());
                 lvItem.Tag = article.Id;
@@ -91,7 +92,7 @@ namespace Weland.Ct.Api.Sample.MiniWMS
             {
                 ListViewItem lvItem = listViewOrders.Items.Add(order.ArticleNo);
                 lvItem.SubItems.Add(order.ArticleDesc);
-                lvItem.SubItems.Add(order.Quantity.ToString());
+                lvItem.SubItems.Add(order.Quantity.ToString(CultureInfo.InvariantCulture));
                 lvItem.SubItems.Add(order.Operation);
                 lvItem.SubItems.Add(order.Elevator);
                 lvItem.SubItems.Add(order.TrayNo.ToString());
@@ -105,91 +106,84 @@ namespace Weland.Ct.Api.Sample.MiniWMS
         {
             var orderItem = listViewOrders.Items
                 .Cast<ListViewItem>()
-                .Where(item => (int)item.Tag == evt.Order.Id)
-                .FirstOrDefault();
+                .FirstOrDefault(item => (int)item.Tag == evt.Order.Id);
 
-            if (orderItem != null && _orderService.TryGetOrder(evt.Order.Id, out var order))
+            if (orderItem == null || !_orderService.TryGetOrder(evt.Order.Id, out var order)) return;
+
+            // Update order in order view with new status
+            orderItem.SubItems[7].Text = evt.Order.Status.ToString();
+
+            // If the order is done. Update article total quantity
+            if (evt.Order.Status != OrderStatus.TaskDone) return;
+
+            var articleItem = listViewArticles.Items
+                .Cast<ListViewItem>()
+                .FirstOrDefault(item => (int)item.Tag == order.ArticleId);
+
+            if (articleItem != null && _articleService.TryGetArticle(order.ArticleId, out var article))
             {
-                // Update order in order view with new status
-                orderItem.SubItems[7].Text = evt.Order.Status.ToString();
-
-                // If the order is done. Update article total quantity
-                if (evt.Order.Status == OrderStatus.TaskDone)
-                {
-                    var articleItem = listViewArticles.Items
-                        .Cast<ListViewItem>()
-                        .Where(item => (int)item.Tag == order.ArticleId)
-                        .FirstOrDefault();
-                    if (articleItem != null && _articleService.TryGetArticle(order.ArticleId, out var article))
-                    {
-                        articleItem.SubItems[2].Text = article.Quantity.ToString();
-                    }
-                }
+                articleItem.SubItems[2].Text = article.Quantity.ToString(CultureInfo.InvariantCulture);
             }
         }
 
         private void OnQueueChangedEvent(CTQueueChangeEvent evt)
         {
             // If order is deleted, remove it from the order view
-            if (evt.ChangeType == OrderQueueChangeType.OrderDeleted)
+            if (evt.ChangeType != OrderQueueChangeType.OrderDeleted) return;
+            
+            var orderItem = listViewOrders.Items
+                .Cast<ListViewItem>()
+                .FirstOrDefault(item => (int)item.Tag == evt.Order.Id);
+
+            if (orderItem != null)
             {
-
-                var orderItem = listViewOrders.Items
-                    .Cast<ListViewItem>()
-                    .Where(item => (int)item.Tag == evt.Order.Id)
-                    .FirstOrDefault();
-
-                if (orderItem != null)
-                {
-                    listViewOrders.Items.Remove(orderItem);
-                }
+                listViewOrders.Items.Remove(orderItem);
             }
         }
 
         private void buttonCreateOrder_Click(object sender, EventArgs e)
         {
-            CreateOrderDlg dlg = new CreateOrderDlg();
+            var dlg = new CreateOrderDlg();
+
+            if (dlg.ShowDialog() != DialogResult.OK) return;
 
             //Open the CreateOrderDlg to enter the pick order information
-            if (dlg.ShowDialog() == DialogResult.OK)
+            try
             {
-                try
+                if (!_articleService.TryGetArticle((int)listViewArticles.SelectedItems[0].Tag, out var article))
                 {
-                    if (!_articleService.TryGetArticle((int)listViewArticles.SelectedItems[0].Tag, out var article))
-                    {
-                        throw new Exception("Article not found");
-                    }
-
-                    OrderRecord order = new OrderRecord
-                    {
-                        ArticleId = article.Id,
-                        ArticleNo = article.ArticleNo,
-                        ArticleDesc = article.ArticleDesc,
-                        Elevator = article.Elevator,
-                        TrayNo = article.TrayNo,
-                        Quantity = dlg.Quantity,
-                        ServiceOpening = dlg.ServiceOpening,
-                        Operation = dlg.Operation
-                    };
-
-                    // Create the order in Compact Talk
-                    var createdOrder = _orderService.CreateOrder(order);
-
-                    ListViewItem lvItem = listViewOrders.Items.Add(createdOrder.ArticleNo);
-                    lvItem.SubItems.Add(createdOrder.ArticleDesc);
-                    lvItem.SubItems.Add(createdOrder.Quantity.ToString());
-                    lvItem.SubItems.Add(createdOrder.Operation);
-                    lvItem.SubItems.Add(createdOrder.Elevator);
-                    lvItem.SubItems.Add(createdOrder.TrayNo.ToString());
-                    lvItem.SubItems.Add(createdOrder.ServiceOpening.ToString());
-                    lvItem.SubItems.Add(createdOrder.CTStatus);
-                    lvItem.Tag = createdOrder.CTOrderId;
+                    throw new Exception("Article not found");
                 }
-                catch (Exception ex)
+
+                var order = new OrderRecord
                 {
-                    MessageBox.Show("Failed to add order to Compact Talk\n\n" + ex.Message);
-                    return;
-                }
+                    ArticleId = article.Id,
+                    ArticleNo = article.ArticleNo,
+                    ArticleDesc = article.ArticleDesc,
+                    Elevator = article.Elevator,
+                    TrayNo = article.TrayNo,
+                    Quantity = dlg.Quantity,
+                    ServiceOpening = dlg.ServiceOpening,
+                    Operation = dlg.Operation
+                };
+
+                // Create the order in Compact Talk
+                var createdOrder = _orderService.CreateOrder(order);
+
+                var lvItem = listViewOrders.Items.Add(createdOrder.ArticleNo);
+                lvItem.SubItems.Add(createdOrder.ArticleDesc);
+                lvItem.SubItems.Add(createdOrder.Quantity.ToString());
+                lvItem.SubItems.Add(createdOrder.Operation);
+                lvItem.SubItems.Add(createdOrder.Elevator);
+                lvItem.SubItems.Add(createdOrder.TrayNo.ToString());
+                lvItem.SubItems.Add(createdOrder.ServiceOpening.ToString());
+                lvItem.SubItems.Add(createdOrder.CTStatus);
+                lvItem.Tag = createdOrder.CTOrderId;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to add order to Compact Talk\n\n" + ex.Message);
+                return;
             }
         }
 
@@ -220,15 +214,15 @@ namespace Weland.Ct.Api.Sample.MiniWMS
 
             buttonExtAck.Enabled = true;
 
-            int orderId = (int)listViewOrders.SelectedItems[0].Tag;
+            var orderId = (int)listViewOrders.SelectedItems[0].Tag;
 
             if (_orderService.TryGetOrder(orderId, out var order))
-                textBoxQuantity.Text = order.Quantity.ToString();
+                textBoxQuantity.Text = order.Quantity.ToString(CultureInfo.InvariantCulture);
         }
 
         private void buttonExtAck_Click(object sender, EventArgs e)
         {
-            int orderId = (int)listViewOrders.SelectedItems[0].Tag;
+            var orderId = (int)listViewOrders.SelectedItems[0].Tag;
 
             try
             {

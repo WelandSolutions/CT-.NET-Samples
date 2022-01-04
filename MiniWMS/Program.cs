@@ -27,22 +27,19 @@ using System.Windows.Forms;
 
 namespace Weland.Ct.Api.Sample.MiniWMS
 {
-    static class Program
+    internal static class Program
     {
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            try
-            {
-                Application.Run(new MainForm());
-            }
-            catch { }
+
+            Application.Run(new MainForm());
         }
     }
 }
